@@ -1,0 +1,522 @@
+/* Liquid auth — one card for the whole sign-in flow. Its glass springs to whatever it holds: the sign-in form, the
+   longer create-account form, the code step and the done step; fields flow in and out, the tabs and the code boxes
+   have a lens that slides, and success folds the card into a drop with a tick before it opens again.
+
+   1 tokens: primitive → semantic (per look) → component     2 stage, frame, ambient     3 the frame's words
+   4 the sign-in page: brand side, card side, the blob     5 the card and its glass     6 the tabs     7 the fields
+   8 the button     9 the code step     10 the done step     11 the frame's footer     12 ?full=1: the real page
+   13 reduced motion
+
+   ---- 1. TOKENS -------------------------------------------------------------------------------------------------
+   1a PRIMITIVES (:root): a neutral ramp, white and black.
+   1b SEMANTIC TOKENS (per look, on [data-look]): what a value is FOR.
+        type    --title-face --title-w --em-face --em-style --head-face --head-w --head-size --btn-face --btn-w
+        field   --page --field-bg --on-field --on-field-muted --chip --on-chip --em --avatar-ring --lockup --light --halo
+        glass   --glass --glass-filter --glass-rim --glass-drop --card-r --spot --rim --sheen
+        lens    --lens-bg --lens-filter --lens-rim --on-lens
+        card    --on-card --on-card-muted --input --input-edge --input-focus --placeholder --danger --on-danger-soft
+                --input-depth --success --on-mark --danger-glow --cta --on-cta --cta-depth --meter-1 --meter-2 --meter-3 --box --box-edge --check --ring
+        character  --stand-room --bits-ink --zz, and the look's own character's colours: --drop-… (glass), --owl-… (nordic),
+                --cat-… (clay). Only one character lives in a look, so its parts use these directly.
+        page    --accent --accent-soft --chip-soft --chip-soft-edge --em-fill --em-drop --ok --grain --grid-line
+                --ripple --plate-1 --plate-2 --plate-3 --plate-paint --plate-paint-soft --sprig --sprig-berry
+                --ball-peach --ball-peach-deep --ball-blue --ball-blue-deep --ball-mint --ball-mint-deep --ball-lilac
+                --ball-lilac-deep --ball-shadow --yarn-1 --yarn-2 --yarn-3 --yarn-line (each look sets only what it shows)
+        frame   --pill --pill-edge --on-pill --on-pill-muted --pill-icon --on-pill-icon
+   1c COMPONENT TOKENS: each component names the semantic tokens it uses (.auth { --au-… }). */
+
+:root {
+  --n-1000: #000; --n-975: #050506; --n-950: #08080A; --n-900: #0E0E11; --n-850: #151519; --n-800: #1D1D22;
+  --n-700: #2B2B31; --n-500: #6E6E78; --n-400: #A0A0A9; --n-300: #C6C6CD; --n-200: #E3E3E8; --n-100: #F2F2F4; --n-0: #fff;
+  --w-4: rgb(255 255 255 / .04); --w-6: rgb(255 255 255 / .06); --w-9: rgb(255 255 255 / .09); --w-12: rgb(255 255 255 / .12);
+  --w-18: rgb(255 255 255 / .18); --w-28: rgb(255 255 255 / .28); --w-40: rgb(255 255 255 / .4); --w-70: rgb(255 255 255 / .7);
+  --b-12: rgb(0 0 0 / .12); --b-25: rgb(0 0 0 / .25); --b-40: rgb(0 0 0 / .4); --b-70: rgb(0 0 0 / .7);
+  --r-300: #FF8F8F; --r-400: #FF6B6B; --p-300: #FF9DB0; --p-400: #FF7A93; --c-200: #B8E6FF;
+  /* nordic: oat paper and charcoal */
+  --o-50: #FBF8F3; --o-100: #F4EFE6; --o-150: #EFE9DE; --o-200: #E4DCCD; --o-300: #C9BFAE; --o-500: #9A9183; --o-600: #6E665B; --o-900: #221E1A;
+  --rd-600: #B4432F;
+  /* nordic porcelain: white glaze, cool glaze shadows, cobalt paint, gold lustre */
+  --pc-0: #FFFFFF; --pc-50: #F6F7FA; --pc-150: #E3E8F0; --pc-300: #C3CCDA;
+  --cb-100: #DCE4F5; --cb-300: #8FA6DA; --cb-500: #3558B8; --cb-700: #1F3C93; --cb-900: #15295F;
+  --gd-300: #EED690; --gd-500: #CDA44C; --gd-700: #94702C;
+  --gn-400: #3BD671; --gn-600: #2F7A4F; --gn-500: #23A36C;
+  /* clay: peach, lilac and periwinkle pastels, a deep violet for what you press */
+  --pe-100: #FFE6DA; --pe-300: #FFD9B8; --pe-400: #FFB27A; --pe-500: #F08F55; --pe-600: #E8834C; --li-50: #FFF6F8; --li-100: #F8EEF6;
+  --li-150: #F6E3F7; --li-200: #E2CFE6; --li-500: #A698B5; --pw-100: #E4E6FF; --vi-400: #B49AF5; --vi-600: #6A4BF0; --vi-700: #5B3FD0; --mg-500: #C054D6; --pl-600: #7C6E8C;
+  --pl-900: #2E2440; --pk-200: #FFB3C4; --pk-300: #FF9DB5; --pk-400: #FF7E98; --cr-50: #FFF6EE; --rs-600: #D13B5C;
+
+  --sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --serif: 'Instrument Serif', 'Times New Roman', serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --round: 'Fredoka', ui-rounded, system-ui, sans-serif;
+}
+
+/* 1b · semantic tokens, per look */
+/* A · GLASS: smoked liquid glass at night. A clear lens with a bright rim, white type, white light behind */
+[data-look="glass"] {
+  --title-face: var(--sans); --title-w: 700; --em-face: var(--serif); --em-style: italic;
+  --head-face: var(--sans); --head-w: 650; --head-size: 22px; --btn-face: var(--sans); --btn-w: 650;
+  --page: var(--n-975);
+  --field-bg: radial-gradient(ellipse 70% 42% at 50% 58%, var(--n-850) 0%, var(--n-950) 62%, var(--n-975) 100%);
+  --on-field: var(--n-0); --on-field-muted: var(--n-400); --chip: var(--n-0); --on-chip: var(--n-1000); --em: var(--n-300);
+  --avatar-ring: var(--n-300); --lockup: none; --light: rgb(255 255 255 / .16); --halo: var(--w-9);
+  --glass: linear-gradient(180deg, var(--w-9), var(--w-4) 60%), rgb(14 14 17 / .56); --glass-filter: blur(28px) saturate(1.5) brightness(1.08);
+  --glass-rim: inset 0 1px 0 var(--w-40), inset 0 -1px 0 var(--w-6), inset 0 0 0 1px var(--w-12), inset 0 0 30px var(--w-4);
+  --glass-drop: 0 40px 80px -28px var(--n-1000), 0 12px 24px -16px var(--b-70);
+  --card-r: 28px; --spot: var(--w-9); --rim: var(--w-70); --sheen: var(--w-12);
+  --lens-bg: radial-gradient(closest-side, transparent 56%, var(--w-6) 80%, var(--w-18) 100%), linear-gradient(180deg, var(--w-12), transparent 50%);
+  --lens-filter: brightness(1.3) saturate(1.2);
+  --lens-rim: inset 0 0 0 1px var(--w-28), inset 0 1.5px 3px var(--w-40), inset 0 -2px 6px var(--w-6), 0 10px 22px -12px var(--n-1000);
+  --on-lens: var(--n-0);
+  --on-card: var(--n-0); --on-card-muted: var(--n-400);
+  --input: var(--w-4); --input-edge: var(--w-12); --input-focus: var(--w-70); --placeholder: var(--n-500); --input-depth: 0 0 #0000;
+  --danger: var(--r-400); --on-danger-soft: var(--r-300); --danger-glow: rgb(255 107 107 / .16); --success: var(--gn-400); --on-mark: var(--n-1000);
+  --cta: var(--n-0); --on-cta: var(--n-1000); --cta-depth: inset 0 -2px 4px var(--b-12), 0 10px 26px -12px var(--w-40);
+  --meter-1: var(--n-500); --meter-2: var(--n-300); --meter-3: var(--n-0);
+  --box: var(--w-4); --box-edge: var(--w-12); --check: var(--n-1000); --ring: var(--w-70);
+  --stand-room: 150px; --zz: var(--n-300);
+  --accent: var(--n-0); --accent-soft: var(--w-12); --chip-soft: var(--w-6); --chip-soft-edge: var(--w-12); --ok: var(--gn-400);
+  --em-fill: linear-gradient(100deg, var(--n-0) 0%, var(--n-400) 55%, var(--n-0) 100%); --em-drop: none;
+  --grain: .22; --grid-line: rgb(255 255 255 / .05); --ripple: rgb(255 255 255 / .3);
+  --drop-1: var(--n-0); --drop-2: var(--n-100); --drop-3: var(--n-300); --drop-4: var(--n-500); --drop-limb: var(--n-200); --drop-tint: var(--c-200);
+  --drop-shade: rgb(0 0 0 / .3); --drop-rim: var(--n-0); --drop-caustic: var(--n-0); --drop-ink: var(--n-975); --drop-ink-2: var(--n-700);
+  --drop-shine: var(--n-0); --drop-cheek: var(--p-300); --drop-tongue: var(--p-400); --drop-contact: rgb(0 0 0 / .55);
+  --pill: var(--w-6); --pill-edge: var(--w-12); --on-pill: var(--n-0); --on-pill-muted: var(--n-400); --pill-icon: var(--n-0); --on-pill-icon: var(--n-1000);
+}
+
+/* B · NORDIC: oat paper, charcoal ink and cobalt, quiet. A paper card, a white pill for a lens, a serif for headings;
+   its owl is a porcelain figurine, hand-painted in cobalt with gold */
+[data-look="nordic"] {
+  --title-face: var(--sans); --title-w: 700; --em-face: var(--serif); --em-style: italic;
+  --head-face: var(--serif); --head-w: 400; --head-size: 30px; --btn-face: var(--sans); --btn-w: 600;
+  --page: var(--o-150);
+  --field-bg: radial-gradient(ellipse 80% 50% at 50% 55%, var(--o-50) 0%, var(--o-150) 70%);
+  --on-field: var(--o-900); --on-field-muted: var(--o-600); --chip: var(--o-900); --on-chip: var(--o-50); --em: var(--cb-700);
+  --avatar-ring: var(--o-900); --lockup: brightness(0); --light: rgb(255 255 255 / .6); --halo: var(--o-200);
+  --glass: var(--o-50); --glass-filter: none;
+  --glass-rim: inset 0 0 0 1px var(--o-200);
+  --glass-drop: 0 34px 60px -34px rgb(70 50 25 / .32), 0 8px 16px -10px rgb(70 50 25 / .2);
+  --card-r: 22px; --spot: transparent; --rim: transparent; --sheen: rgb(255 255 255 / .7);
+  --lens-bg: var(--n-0); --lens-filter: none;
+  --lens-rim: inset 0 0 0 1px var(--o-200), 0 1px 2px rgb(60 40 20 / .12), 0 6px 12px -6px rgb(60 40 20 / .22);
+  --on-lens: var(--o-900);
+  --on-card: var(--o-900); --on-card-muted: var(--o-600);
+  --input: var(--o-100); --input-edge: var(--o-200); --input-focus: var(--cb-700); --placeholder: var(--o-500); --input-depth: 0 0 #0000;
+  --danger: var(--rd-600); --on-danger-soft: var(--rd-600); --danger-glow: rgb(180 67 47 / .13); --success: var(--gn-600); --on-mark: var(--pc-0);
+  --cta: var(--cb-700); --on-cta: var(--pc-0); --cta-depth: inset 0 1px 0 rgb(255 255 255 / .18), 0 10px 20px -12px rgb(21 41 95 / .6);
+  --meter-1: var(--o-300); --meter-2: var(--cb-300); --meter-3: var(--cb-700);
+  --box: var(--o-100); --box-edge: var(--o-200); --check: var(--o-50); --ring: var(--cb-700);
+  --stand-room: 172px; --zz: var(--o-600);
+  --accent: var(--cb-700); --accent-soft: rgb(31 60 147 / .1); --chip-soft: rgb(255 255 255 / .6); --chip-soft-edge: var(--o-200); --ok: var(--gn-600);
+  --em-fill: linear-gradient(var(--cb-700), var(--cb-700)); --em-drop: none; --grain: .3;
+  --plate-1: var(--pc-0); --plate-2: var(--pc-50); --plate-3: var(--pc-150); --plate-paint: var(--cb-700); --plate-paint-soft: var(--cb-300);
+  --sprig: var(--cb-500); --sprig-berry: var(--gd-500);
+  --owl-glaze-1: var(--pc-0); --owl-glaze-2: var(--pc-50); --owl-glaze-3: var(--pc-150); --owl-glaze-4: var(--pc-300);
+  --owl-shade: rgb(31 60 147 / .2); --owl-shine: var(--pc-0); --owl-paint: var(--cb-700); --owl-paint-soft: var(--cb-500);
+  --owl-iris: var(--cb-500); --owl-pupil: var(--cb-900); --owl-lid: var(--pc-50); --owl-wash: var(--cb-300);
+  --owl-gold-1: var(--gd-300); --owl-gold-2: var(--gd-500); --owl-gold-3: var(--gd-700); --owl-contact: rgb(40 50 80 / .3);
+  --pill: rgb(255 255 255 / .6); --pill-edge: var(--o-200); --on-pill: var(--o-900); --on-pill-muted: var(--o-600); --pill-icon: var(--o-900); --on-pill-icon: var(--o-50);
+}
+
+/* C · CLAY: soft pastel clay. A chunky card pressed out of the page, wells for fields, a violet button, round type;
+   its cat is peach clay with pink ears */
+[data-look="clay"] {
+  --title-face: var(--round); --title-w: 650; --em-face: var(--round); --em-style: normal;
+  --head-face: var(--round); --head-w: 600; --head-size: 26px; --btn-face: var(--round); --btn-w: 600;
+  --page: var(--li-150);
+  --field-bg: linear-gradient(160deg, var(--pe-100) 0%, var(--li-150) 55%, var(--pw-100) 100%);
+  --on-field: var(--pl-900); --on-field-muted: var(--pl-600); --chip: var(--pl-900); --on-chip: var(--n-0); --em: var(--vi-600);
+  --avatar-ring: var(--pl-900); --lockup: brightness(0); --light: rgb(255 255 255 / .75); --halo: rgb(255 255 255 / .8);
+  --glass: linear-gradient(160deg, var(--n-0), var(--li-50)); --glass-filter: none;
+  --glass-rim: inset 3px 3px 6px rgb(255 255 255 / .9), inset -6px -8px 16px rgb(214 176 210 / .5);
+  --glass-drop: 18px 24px 44px -14px rgb(160 110 160 / .42), 4px 6px 12px rgb(160 110 160 / .16);
+  --card-r: 34px; --spot: rgb(255 255 255 / .5); --rim: transparent; --sheen: rgb(255 255 255 / .8);
+  --lens-bg: linear-gradient(160deg, var(--n-0), var(--li-100)); --lens-filter: none;
+  --lens-rim: 4px 6px 12px -4px rgb(160 110 160 / .45), inset -2px -3px 6px rgb(214 176 210 / .6), inset 2px 2px 4px var(--n-0);
+  --on-lens: var(--pl-900);
+  --on-card: var(--pl-900); --on-card-muted: var(--pl-600);
+  --input: var(--li-100); --input-edge: rgb(214 176 210 / .35); --input-focus: var(--vi-600); --placeholder: var(--li-500);
+  --input-depth: inset 3px 3px 7px rgb(214 176 210 / .55), inset -3px -3px 7px var(--n-0);
+  --danger: var(--rs-600); --on-danger-soft: var(--rs-600); --danger-glow: rgb(209 59 92 / .14); --success: var(--gn-500); --on-mark: var(--n-0);
+  --cta: var(--vi-600); --on-cta: var(--n-0);
+  --cta-depth: inset -3px -4px 8px rgb(40 10 120 / .35), inset 3px 3px 6px rgb(255 255 255 / .35), 6px 10px 20px -6px rgb(106 75 240 / .5);
+  --meter-1: var(--li-200); --meter-2: var(--vi-400); --meter-3: var(--vi-600);
+  --box: var(--li-100); --box-edge: rgb(214 176 210 / .35); --check: var(--n-0); --ring: var(--vi-600);
+  --stand-room: 180px; --zz: var(--pl-600);
+  --accent: var(--vi-600); --accent-soft: rgb(106 75 240 / .14); --chip-soft: rgb(255 255 255 / .65); --chip-soft-edge: rgb(214 176 210 / .45); --ok: var(--gn-500);
+  --em-fill: linear-gradient(100deg, var(--vi-600), var(--mg-500)); --em-scale: .92; --em-drop: drop-shadow(0 8px 14px rgb(106 75 240 / .25)); --grain: .18;
+  --ball-peach: var(--pe-400); --ball-peach-deep: var(--pe-500); --ball-blue: #A9B4FF; --ball-blue-deep: #7C86E8; --ball-mint: #9BE3C4; --ball-mint-deep: #5DBE97;
+  --ball-lilac: #D6B8FF; --ball-lilac-deep: #A987EA; --ball-shadow: rgb(150 100 160 / .35);
+  --yarn-1: #FFD3E8; --yarn-2: #F59BC8; --yarn-3: #D86AA6; --yarn-line: rgb(170 60 120 / .5);
+  --cat-1: #FFD9AE; --cat-2: #F6A45F; --cat-3: #D4733A; --cat-stripe: #D06A2E; --cat-shade: rgb(140 50 20 / .34); --cat-rim: #FFE4EE;
+  --cat-light: var(--n-0); --cat-white-1: var(--n-0); --cat-white-2: var(--cr-50); --cat-white-3: #F0D6C4; --cat-fur: var(--n-0);
+  --cat-iris-1: #E6F58C; --cat-iris-2: #86C64B; --cat-iris-3: #2D6E2F; --cat-pupil: #140B14; --cat-line: #2B1A22; --cat-glint: var(--n-0);
+  --cat-ear-1: #FFCDD7; --cat-ear-2: #F296AD; --cat-nose-1: #FFB3C2; --cat-nose-2: #EC6C8C; --cat-mouth: #5B2B3B; --cat-tongue: var(--pk-400);
+  --cat-cheek: var(--pk-300); --cat-toe: #E0B9A4; --cat-contact: rgb(150 90 140 / .35);
+  --pill: rgb(255 255 255 / .7); --pill-edge: rgb(214 176 210 / .45); --on-pill: var(--pl-900); --on-pill-muted: var(--pl-600); --pill-icon: var(--pl-900); --on-pill-icon: var(--n-0);
+}
+
+/* 1c · component tokens: each component names what it uses */
+.title    { --title-type: var(--title-face); --title-weight: var(--title-w); --em-type: var(--em-face); --em-slant: var(--em-style); --title-em-fill: var(--em-fill); --title-ink: var(--on-field); --title-muted: var(--on-field-muted); --title-em: var(--em); --title-chip: var(--chip); --title-on-chip: var(--on-chip); }
+.auth     { --au-glass: var(--glass); --au-filter: var(--glass-filter); --au-rim: var(--glass-rim); --au-drop: var(--glass-drop); --au-spot: var(--spot); --au-light: var(--rim); --au-sheen: var(--sheen);
+            --au-ink: var(--on-card); --au-dim: var(--on-card-muted); --au-input: var(--input); --au-input-edge: var(--input-edge); --au-focus: var(--input-focus); --au-ph: var(--placeholder);
+            --au-danger: var(--danger); --au-danger-soft: var(--on-danger-soft); --au-cta: var(--cta); --au-on-cta: var(--on-cta);
+            --au-m1: var(--meter-1); --au-m2: var(--meter-2); --au-m3: var(--meter-3); --au-box: var(--box); --au-box-edge: var(--box-edge); --au-check: var(--check); --au-ring: var(--ring);
+            --au-lens: var(--lens-bg); --au-lens-filter: var(--lens-filter); --au-lens-rim: var(--lens-rim); --au-on-lens: var(--on-lens);
+            --au-input-depth: var(--input-depth); --au-cta-depth: var(--cta-depth); --au-ok: var(--success); --au-on-mark: var(--on-mark); --au-danger-glow: var(--danger-glow);
+            --au-head: var(--head-face); --au-head-w: var(--head-w); --au-head-size: var(--head-size); --au-btn: var(--btn-face); --au-btn-w: var(--btn-w); }
+.brand-side { --bs-ink: var(--on-field); --bs-dim: var(--on-field-muted); --bs-em-fill: var(--em-fill); --bs-em-drop: var(--em-drop); --bs-accent: var(--accent);
+              --bs-accent-soft: var(--accent-soft); --bs-chip: var(--chip-soft); --bs-chip-edge: var(--chip-soft-edge); --bs-ok: var(--ok);
+              --bs-type: var(--title-face); --bs-weight: var(--title-w); --bs-em-type: var(--em-face); --bs-em-slant: var(--em-style);
+              --bs-card: var(--glass); --bs-card-filter: var(--glass-filter); --bs-card-rim: var(--glass-rim); --bs-card-drop: var(--glass-drop); --bs-card-r: var(--card-r);
+              --bs-card-ink: var(--on-card); --bs-card-dim: var(--on-card-muted); }
+.topbar, .legal { --bar-ink: var(--on-field); --bar-dim: var(--on-field-muted); --bar-btn: var(--pill); --bar-btn-edge: var(--pill-edge); --bar-on-btn: var(--on-pill); --bar-ok: var(--ok); }
+.note     { --note-ink: var(--on-field-muted); }
+.tutorial { --pill-bg: var(--pill); --pill-line: var(--pill-edge); --pill-ink: var(--on-pill); --pill-dim: var(--on-pill-muted); --pill-ic: var(--pill-icon); --pill-on-ic: var(--on-pill-icon); }
+.credits  { --credit-ink: var(--on-field); --credit-muted: var(--on-field-muted); }
+
+/* ---- 2. the stage, the frame, ambient ---- */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: var(--sans); background: var(--page); -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.stage { position: relative; height: 100dvh; display: grid; place-items: center; overflow: hidden; background: var(--field-bg), var(--page); color: var(--on-field); }
+.frame { position: relative; width: 432px; height: 768px; flex: none; transform: scale(calc(var(--k, 1) * var(--bump, 1))); }
+.amb { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.glow { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, var(--light), transparent); }
+.glow.g1 { left: -170px; top: 300px; width: 470px; height: 470px; }
+.glow.g2 { left: 220px; top: 190px; width: 420px; height: 420px; opacity: .75; }
+.glow.g3 { left: 40px; top: 560px; width: 420px; height: 320px; opacity: .6; }
+
+/* ---- 3. the frame's words ---- */
+.title { position: absolute; top: 30px; left: 0; right: 0; text-align: center; z-index: 3; color: var(--title-ink); }
+.series { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 -4px; font-size: 11px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: var(--title-muted); }
+.series b { display: inline-grid; place-items: center; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; letter-spacing: .04em; color: var(--title-on-chip); background: var(--title-chip); }
+.title h1 { margin: 0; height: 72px; font-family: var(--title-type); font-size: 44px; font-weight: var(--title-weight); line-height: 72px; letter-spacing: -.05em; white-space: nowrap; }
+.title h1 em { background: var(--title-em-fill); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-family: var(--em-type); font-weight: 400; font-style: var(--em-slant); font-size: 1.14em; line-height: 50px; letter-spacing: -.02em; padding: 0 .1em; color: var(--title-em); }
+.hint { margin: -7px 0 0; height: 20px; line-height: 20px; font-size: 14px; font-weight: 500; color: var(--title-muted); }
+/* ---- 4. the sign-in page. It follows its container (.signin): a phone-wide container gets the card alone, a wide one
+        the brand side and the card side by side. In the 9:16 frame the container is the card's own width. ---- */
+.signin { container: signin / inline-size; position: absolute; left: 44px; top: 136px; width: 344px;
+  display: flex; align-items: center; justify-content: center; gap: clamp(48px, 7vw, 112px); }
+/* the room above the card is the character's: a narrow card has it peek over the edge (--pose, read by app.js), a wider
+   one has it stand on it (how much room that takes is the look's: --stand-room). The stage behind it follows: peeking, the
+   plate rises behind it like a sun from the card's edge */
+.card-side { --pose: peek; --room: 114px; --decor-y: var(--room); --plate: 200px; position: relative; flex: none; width: min(100%, 400px); padding: var(--room) 0 22px; }   /* 22: the note */
+.note { position: absolute; left: 0; right: 0; top: 0; margin: 0; text-align: center; font-size: 12px; font-weight: 500; color: var(--note-ink); }   /* rides under the glass (app.js) */
+.brand-side { display: none; flex: 0 1 520px; color: var(--bs-ink); }
+@container signin (min-width: 600px) {
+  .card-side { --pose: stand; --room: var(--stand-room); --decor-y: calc(var(--room) - 74px); --plate: 300px; }
+  .card-side .yarn { visibility: visible; }
+}
+@container signin (min-width: 860px) { .brand-side { display: block; } }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--bar-ink); text-decoration: none; font-size: 19px; font-weight: 650; letter-spacing: -.02em; border-radius: 8px; }
+.brand:focus-visible { outline: 2px solid var(--bar-ink); outline-offset: 4px; }
+.brand svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 7px 14px 7px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: .01em;
+  color: var(--bs-ink); background: var(--bs-chip); box-shadow: inset 0 0 0 1px var(--bs-chip-edge); }
+.eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: var(--bs-accent); box-shadow: 0 0 0 4px var(--bs-accent-soft); }
+.pitch { margin: 26px 0 0; font-family: var(--bs-type); font-size: clamp(46px, 5.6cqi, 70px); font-weight: var(--bs-weight); line-height: 1; letter-spacing: -.05em; text-wrap: balance; }
+.pitch span { display: block; width: fit-content; padding: 0 .08em .06em 0; font-family: var(--bs-em-type); font-weight: 400; font-style: var(--bs-em-slant); font-size: calc(var(--em-scale, 1.1) * 1em); letter-spacing: -.02em;
+  background: var(--bs-em-fill); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: var(--bs-em-drop); }
+.pitch-sub { max-width: 410px; margin: 20px 0 0; font-size: 17px; line-height: 1.55; color: var(--bs-dim); }
+.perks { display: grid; gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; font-size: 15px; font-weight: 500; }
+.perks li { display: flex; align-items: center; gap: 14px; }
+.perks svg { flex: none; width: 18px; height: 18px; padding: 8px; box-sizing: content-box; border-radius: 11px; fill: none; stroke: var(--bs-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  background: var(--bs-chip); box-shadow: inset 0 0 0 1px var(--bs-chip-edge); }
+/* a glimpse of the product, in the card's own material */
+.glance { max-width: 340px; margin: 32px 0 0; padding: 16px 20px 12px; border-radius: var(--bs-card-r); color: var(--bs-card-ink);
+  background: var(--bs-card); box-shadow: var(--bs-card-rim), var(--bs-card-drop); -webkit-backdrop-filter: var(--bs-card-filter); backdrop-filter: var(--bs-card-filter); }
+.glance figcaption { font-size: 12.5px; font-weight: 600; color: var(--bs-card-dim); }
+.glance-value { margin: 2px 0 6px; font-family: var(--bs-type); font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.glance-value b { margin-left: 6px; padding: 3px 8px; border-radius: 999px; font-family: var(--sans); font-size: 12.5px; font-weight: 650; letter-spacing: 0; vertical-align: 6px;
+  color: var(--bs-ok); background: color-mix(in srgb, var(--bs-ok) 14%, transparent); }
+.glance svg { display: block; width: 100%; height: 52px; }
+.glance-line { fill: none; stroke: var(--bs-accent); stroke-width: 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.glance-area { fill: var(--bs-accent-soft); }
+
+/* the page's top bar and footer: the real page only (?full=1) */
+.topbar, .legal { display: none; }
+.top-links { display: flex; align-items: center; gap: 6px; }
+.top-links a, .legal a { color: var(--bar-dim); text-decoration: none; border-radius: 8px; }
+.top-links a { padding: 10px 12px; font-size: 14px; font-weight: 500; }
+.top-links a:hover, .legal a:hover { color: var(--bar-ink); }
+.top-links a:focus-visible, .legal a:focus-visible, .top-cta:focus-visible { outline: 2px solid var(--bar-ink); outline-offset: 2px; }
+.top-cta { height: 40px; padding: 0 16px; border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--bar-on-btn); cursor: pointer;
+  background: var(--bar-btn); box-shadow: inset 0 0 0 1px var(--bar-btn-edge); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.legal { font-size: 12.5px; color: var(--bar-dim); }
+.legal p { margin: 0; }
+.legal nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.status i { display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; vertical-align: 1px; background: var(--bar-ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bar-ok) 25%, transparent); }
+
+/* the backdrop and the stage: each look shows only its own decor */
+.decor { display: none; }
+[data-look="glass"] .for-glass, [data-look="nordic"] .for-nordic, [data-look="clay"] .for-clay { display: block; }
+.amb > * { position: absolute; }
+.defs { position: absolute; }
+.grain { inset: 0; opacity: var(--grain); mix-blend-mode: soft-light;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.grid { inset: 0; background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px); background-size: 48px 48px;
+  -webkit-mask: radial-gradient(ellipse 70% 60% at 55% 45%, #000, transparent 75%); mask: radial-gradient(ellipse 70% 60% at 55% 45%, #000, transparent 75%); }
+.sprig { width: 22%; aspect-ratio: 120 / 220; overflow: visible; }
+.sprig-stem { fill: none; stroke: var(--sprig); stroke-width: 2.2; stroke-linecap: round; }
+.sprig-leaf { fill: var(--sprig); }
+.sprig-line { fill: none; stroke: var(--sprig); stroke-width: 2; }
+.sprig-berry { fill: var(--sprig-berry); }
+.sprig { visibility: hidden; }                                   /* the branches need a wide page (see 12) */
+.ball, .pill { --c: var(--ball-peach); --c-deep: var(--ball-peach-deep); aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, rgb(255 255 255 / .9) 0, var(--c) 34%, var(--c-deep) 100%);
+  box-shadow: 14px 22px 40px -12px var(--ball-shadow), inset -6px -10px 18px rgb(0 0 0 / .06); }
+.b1 { left: 3%; top: 22%; width: 10%; }
+.b2 { --c: var(--ball-blue); --c-deep: var(--ball-blue-deep); right: -5%; top: 56%; width: 18%; }
+.b3 { --c: var(--ball-mint); --c-deep: var(--ball-mint-deep); left: 6%; top: 76%; width: 6%; }
+.pill { --c: var(--ball-lilac); --c-deep: var(--ball-lilac-deep); right: -6%; top: 31%; width: 16%; aspect-ratio: 2.6; border-radius: 999px; rotate: -28deg; }
+
+.stage-decor { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.ripple { position: absolute; left: 50%; top: var(--decor-y); width: 400px; height: 400px; margin: -200px 0 0 -200px; border-radius: 50%; border: 1px solid var(--ripple); opacity: 0; }
+.plate { position: absolute; left: 50%; top: var(--decor-y); width: var(--plate); height: var(--plate); translate: -50% -50%; filter: drop-shadow(0 18px 26px rgb(40 50 80 / .16)); }
+.pg1 { stop-color: var(--plate-1); } .pg2 { stop-color: var(--plate-2); } .pg3 { stop-color: var(--plate-3); }
+.plate-band { fill: none; stroke: var(--plate-paint); stroke-width: 7; }
+.plate-scallops { fill: none; stroke: var(--plate-paint); stroke-width: 2.2; stroke-linecap: round; }
+.plate-dots { fill: none; stroke: var(--plate-paint); stroke-width: 4; stroke-dasharray: 0 10; stroke-linecap: round; }
+.plate-thin { fill: none; stroke: var(--plate-paint-soft); stroke-width: 1.4; }
+.yarn { position: absolute; left: -54px; bottom: 26px; width: 104px; visibility: hidden; overflow: visible; filter: drop-shadow(8px 14px 16px var(--ball-shadow)); }
+.yf1 { stop-color: var(--yarn-1); } .yf2 { stop-color: var(--yarn-2); } .yf3 { stop-color: var(--yarn-3); }
+.yarn-strands, .yarn-tail { fill: none; stroke: var(--yarn-line); stroke-width: 2; stroke-linecap: round; }
+.yarn-tail { stroke: var(--yarn-2); stroke-width: 2.6; }
+
+/* the character: two SVGs over one 300 × 260 box, centred over the card with the card's top edge at y 190 — one behind
+   the card's glass, one in front (character-*.js draws them; app.js flies the bits and the z's) */
+.blob { position: absolute; left: calc(50% - 150px); top: calc(var(--room) - 190px); width: 300px; height: 260px; overflow: visible; pointer-events: none; }
+.blob-back { z-index: 3; }
+.blob-front { z-index: 5; }
+.b-hit { pointer-events: visiblePainted; cursor: pointer; }
+.b-bits > * { opacity: 0; }
+.b-zz text { font: 700 15px var(--sans); fill: var(--zz); opacity: 0; }
+
+/* the drop (glass) */
+.dr-f1 { stop-color: var(--drop-1); } .dr-f2 { stop-color: var(--drop-2); } .dr-f3 { stop-color: var(--drop-3); } .dr-f4 { stop-color: var(--drop-4); }
+.dr-t1 { stop-color: var(--drop-tint); stop-opacity: 0; } .dr-t2 { stop-color: var(--drop-tint); stop-opacity: .5; }
+.dr-s1 { stop-color: var(--drop-shade); } .dr-s2 { stop-color: var(--drop-shade); stop-opacity: 0; }
+.dr-r1 { stop-color: var(--drop-rim); stop-opacity: .95; } .dr-r2 { stop-color: var(--drop-rim); stop-opacity: 0; }
+.dr-p1 { stop-color: var(--drop-shine); stop-opacity: .95; } .dr-p2 { stop-color: var(--drop-shine); stop-opacity: 0; }
+.dr-q1 { stop-color: var(--drop-caustic); stop-opacity: .9; } .dr-q2 { stop-color: var(--drop-caustic); stop-opacity: 0; }
+.dr-e1 { stop-color: var(--drop-ink); } .dr-e2 { stop-color: var(--drop-ink-2); }
+.dr-c1 { stop-color: var(--drop-cheek); stop-opacity: .85; } .dr-c2 { stop-color: var(--drop-cheek); stop-opacity: 0; }
+.dr-k1 { stop-color: var(--drop-contact); } .dr-k2 { stop-color: var(--drop-contact); stop-opacity: 0; }
+.dr-rim { fill: none; stroke-width: 1.6; }
+.dr-dot { fill: var(--drop-shine); }
+.dr-iris, .dr-glint, .dr-cheek, .dr-tongue { transform-box: fill-box; transform-origin: center; }
+.dr-glint { fill: var(--drop-1); }
+.dr-arc, .dr-mouth, .dr-brow { fill: none; stroke: var(--drop-ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.dr-brow { stroke-width: 2.6; }
+.dr-mouth { fill: var(--drop-ink); fill-opacity: 0; }
+.dr-tongue { fill: var(--drop-tongue); opacity: 0; }
+.dr-arc { opacity: 0; }
+.dr-arm { fill: none; stroke: var(--drop-limb); stroke-width: 9; stroke-linecap: round; }
+.dr-hand { stroke: var(--drop-4); stroke-opacity: .35; stroke-width: 1; }
+.dr-drip { opacity: 0; }
+[data-look="glass"] .b-bits > * { fill: url(#dr-fill); }
+
+/* the owl (nordic): porcelain — a white glaze with a cool shade, cobalt paint, gold lustre, and gloss over it all */
+.ow-g1 { stop-color: var(--owl-glaze-1); } .ow-g2 { stop-color: var(--owl-glaze-2); } .ow-g3 { stop-color: var(--owl-glaze-3); } .ow-g4 { stop-color: var(--owl-glaze-4); }
+.ow-s1 { stop-color: var(--owl-shade); } .ow-s2 { stop-color: var(--owl-shade); stop-opacity: 0; }
+.ow-p1 { stop-color: var(--owl-shine); stop-opacity: .95; } .ow-p2 { stop-color: var(--owl-shine); stop-opacity: .1; }
+.ow-r1 { stop-color: var(--owl-shine); stop-opacity: 0; } .ow-r2 { stop-color: var(--owl-shine); stop-opacity: .85; }
+.ow-w1 { stop-color: var(--owl-wash); stop-opacity: .7; } .ow-w2 { stop-color: var(--owl-wash); stop-opacity: 0; }
+.ow-o1 { stop-color: var(--owl-gold-1); } .ow-o2 { stop-color: var(--owl-gold-2); } .ow-o3 { stop-color: var(--owl-gold-3); }
+.ow-k1 { stop-color: var(--owl-contact); } .ow-k2 { stop-color: var(--owl-contact); stop-opacity: 0; }
+.ow-body, .ow-tuft-skin, .ow-wing-skin { stroke: var(--owl-glaze-4); stroke-width: 1; }
+.ow-paint { fill: none; stroke: var(--owl-paint); stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.ow-thin { stroke: var(--owl-paint-soft); stroke-width: 1.6; }
+.ow-tuft-paint { stroke-width: 3.2; }
+.ow-crown, .ow-brow { fill: var(--owl-paint); }
+.ow-back { opacity: 0; }
+.ow-iris { fill: var(--owl-iris); }
+.ow-pupil { fill: var(--owl-pupil); transform-box: fill-box; transform-origin: center; }
+.ow-glint, .ow-dot { fill: var(--owl-shine); }
+.ow-lid { fill: var(--owl-lid); }
+.ow-lash, .ow-arc { fill: none; stroke: var(--owl-paint); stroke-width: 2.4; stroke-linecap: round; opacity: 0; }
+.ow-arc { stroke-width: 3; }
+.ow-beak-lo { opacity: 0; }
+.ow-beak-hl { fill: none; stroke: var(--owl-gold-1); stroke-width: 1.6; stroke-linecap: round; }
+.ow-cheek { transform-box: fill-box; transform-origin: center; }
+.ow-wing-gloss { fill: none; stroke: var(--owl-shine); stroke-width: 2.2; stroke-linecap: round; opacity: .9; }
+.ow-foot { fill: none; stroke: url(#ow-gold); stroke-width: 4; stroke-linecap: round; opacity: 0; }
+[data-look="nordic"] .b-bits > * { fill: var(--owl-glaze-1); stroke: var(--owl-paint-soft); stroke-width: 1; }
+
+/* the cat (clay): lit like a film character — key light top left, shade underneath, a rim of back light */
+.ct-f1 { stop-color: var(--cat-1); } .ct-f2 { stop-color: var(--cat-2); } .ct-f3 { stop-color: var(--cat-3); }
+.ct-w1 { stop-color: var(--cat-white-1); } .ct-w2 { stop-color: var(--cat-white-2); } .ct-w3 { stop-color: var(--cat-white-3); }
+.ct-s1 { stop-color: var(--cat-shade); } .ct-s2 { stop-color: var(--cat-shade); stop-opacity: 0; }
+.ct-r1 { stop-color: var(--cat-rim); stop-opacity: 0; } .ct-r2 { stop-color: var(--cat-rim); stop-opacity: .95; }
+.ct-l1 { stop-color: var(--cat-light); stop-opacity: .5; } .ct-l2 { stop-color: var(--cat-light); stop-opacity: 0; }
+.ct-i1 { stop-color: var(--cat-iris-1); } .ct-i2 { stop-color: var(--cat-iris-2); } .ct-i3 { stop-color: var(--cat-iris-3); }
+.ct-n1 { stop-color: var(--cat-nose-1); } .ct-n2 { stop-color: var(--cat-nose-2); }
+.ct-e1 { stop-color: var(--cat-ear-1); } .ct-e2 { stop-color: var(--cat-ear-2); }
+.ct-k1 { stop-color: var(--cat-contact); } .ct-k2 { stop-color: var(--cat-contact); stop-opacity: 0; }
+.ct-rim { fill: none; stroke: url(#ct-rim); stroke-width: 3; }
+.ct-ear-rim { fill: none; stroke: var(--cat-rim); stroke-width: 2; stroke-linecap: round; opacity: .8; }
+.ct-tail-skin, .ct-tail-band { fill: none; stroke-linecap: round; }
+.ct-tail-skin { stroke: var(--cat-2); }
+.ct-tail-band { stroke: var(--cat-stripe); stroke-dasharray: 5 11; stroke-dashoffset: -8; stroke-linecap: butt; }
+.ct-fur-line { fill: none; stroke: var(--cat-fur); stroke-width: 1.5; stroke-linecap: round; opacity: .85; }
+.ct-stripes { fill: var(--cat-stripe); }
+.ct-stripe-line { fill: none; stroke: var(--cat-stripe); stroke-width: 2.6; stroke-linecap: round; }
+.ct-socket { fill: var(--cat-line); }
+.ct-pupil { fill: var(--cat-pupil); transform-box: fill-box; transform-origin: center; }
+.ct-sheen { fill: var(--cat-glint); opacity: .3; }
+.ct-glint { fill: var(--cat-glint); }
+.ct-lid { fill: var(--cat-2); }
+.ct-lash, .ct-liner, .ct-arc, .ct-mouth { fill: none; stroke: var(--cat-line); stroke-linecap: round; stroke-linejoin: round; }
+.ct-lash { stroke-width: 2.4; opacity: 0; }
+.ct-liner { stroke-width: 2.8; }
+.ct-arc { stroke-width: 3; opacity: 0; }
+.ct-mouth { stroke: var(--cat-mouth); stroke-width: 2.4; }
+.ct-brow { fill: none; stroke: var(--cat-3); stroke-width: 3.4; stroke-linecap: round; }
+.ct-cheek { fill: var(--cat-cheek); transform-box: fill-box; transform-origin: center; }
+.ct-nose-hl { fill: var(--cat-glint); opacity: .8; }
+.ct-open { fill: var(--cat-mouth); opacity: 0; }
+.ct-tongue { fill: var(--cat-tongue); opacity: 0; }
+.ct-whisker { fill: none; stroke: var(--cat-white-1); stroke-opacity: .9; stroke-width: 1.2; stroke-linecap: round; }
+.ct-arm { fill: none; stroke: var(--cat-2); stroke-width: 15; stroke-linecap: round; }
+.ct-toes { fill: none; stroke: var(--cat-toe); stroke-width: 1.6; stroke-linecap: round; }
+[data-look="clay"] .b-bits > * { fill: var(--cat-nose); }
+
+/* ---- 5. the card: an area with the glass (the drop) in it. The drop's box is sprung by app.js; each step (a view)
+        is laid out at the card's width and clipped to the drop, so the steps slide inside one piece of glass. ---- */
+.auth { position: relative; width: 100%; height: var(--au-h, 360px); z-index: 4; color: var(--au-ink); }   /* --au-h: the tallest step (app.js) */
+.drop { position: absolute; left: 0; top: 0; width: 10px; height: 10px; overflow: hidden; border-radius: var(--card-r); pointer-events: none;
+  background: var(--au-glass); box-shadow: var(--au-rim), var(--au-drop); -webkit-backdrop-filter: var(--au-filter); backdrop-filter: var(--au-filter); }
+.drop i { position: absolute; pointer-events: none; }
+.d-spot { inset: 0; background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 0), var(--au-spot), transparent 70%); }
+.d-rim { inset: 0; border-radius: inherit; padding: 1px; background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 0), var(--au-light), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+.d-sheen { top: -20%; bottom: -20%; left: 0; width: 50%; opacity: 0; background: linear-gradient(100deg, transparent, var(--au-sheen) 50%, transparent); }
+.d-ring { inset: 0; border-radius: inherit; box-shadow: 0 0 0 2px var(--au-ring); opacity: 0; }
+.view { position: absolute; left: 0; top: 0; width: 100%; padding: 16px 20px 18px; }
+.view[hidden] { display: block; visibility: hidden; }
+.view.is-out { visibility: visible; pointer-events: none; }
+.view > * { position: relative; }
+.view h2 { margin: 0; font-family: var(--au-head); font-size: var(--au-head-size); font-weight: var(--au-head-w); line-height: 1.15; letter-spacing: -.02em; }
+.sub { margin: 6px 0 0; font-size: 14px; line-height: 20px; color: var(--au-dim); }
+.sub b { color: var(--au-ink); font-weight: 600; }
+
+/* ---- 6. the tabs: two buttons and a lens that slides between them ---- */
+.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; height: 44px; padding: 4px; margin-bottom: 12px; border-radius: 999px; background: var(--au-input); box-shadow: inset 0 0 0 1px var(--au-input-edge); }
+.seg button { position: relative; z-index: 1; border: 0; border-radius: 999px; background: none; font-size: 14px; font-weight: 600; color: var(--au-dim); cursor: pointer; transition: color .25s; }
+.seg button[aria-selected="true"] { color: var(--au-on-lens); }
+.seg button:focus-visible { outline: 2px solid var(--au-focus); outline-offset: -3px; }
+.seg-lens, .otp-lens { position: absolute; left: 0; top: 0; width: 10px; height: 10px; border-radius: 999px; pointer-events: none; overflow: hidden;
+  background: var(--au-lens); box-shadow: var(--au-lens-rim); -webkit-backdrop-filter: var(--au-lens-filter); backdrop-filter: var(--au-lens-filter); }
+.seg-lens::before, .otp-lens::before {                       /* a thin bright arc along the top rim */
+  content: ''; position: absolute; inset: 1px 14% auto; height: 40%; border-radius: 999px 999px 40% 40% / 999px 999px 30% 30%;
+  border-top: 1px solid var(--w-70); background: linear-gradient(180deg, var(--w-9), transparent 70%); }
+
+/* ---- 7. the fields: a box with the label inside; the name and the meter flow in for "Create account" (app.js
+        springs each field's height between 0 and its own) ---- */
+.field { overflow: hidden; }
+.field-in { position: relative; padding-bottom: 8px; }
+.field label { position: absolute; left: 16px; top: 9px; z-index: 1; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--au-dim); pointer-events: none; }
+.field input { width: 100%; height: 52px; padding: 21px 44px 6px 16px; border: 0; border-radius: 16px; outline: none; font-size: 15px; font-weight: 500;
+  background: var(--au-input); box-shadow: inset 0 0 0 1px var(--au-input-edge), var(--au-input-depth); transition: box-shadow .25s; -webkit-user-select: text; user-select: text; }
+.field input::placeholder { color: var(--au-ph); }
+.field input:focus { box-shadow: inset 0 0 0 1.5px var(--au-focus), var(--au-input-depth); }
+.field[data-state="ok"] input { box-shadow: inset 0 0 0 1.5px var(--au-ok), var(--au-input-depth); }
+.field[data-state="bad"] input { box-shadow: inset 0 0 0 1.5px var(--au-danger), 0 0 0 4px var(--au-danger-glow), var(--au-input-depth); }
+/* the mark at the end of a field: a tick that draws itself, or an exclamation; and the line under a wrong field */
+.mark { position: absolute; right: 14px; top: 15px; width: 22px; height: 22px; opacity: 0; pointer-events: none; }
+.f-pass .mark { right: 54px; }
+.mark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mark-bg { fill: var(--au-ok); }
+.mark-ok, .mark-bad { fill: none; stroke: var(--au-on-mark); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.mark-ok { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.field[data-state="bad"] .mark-bg { fill: var(--au-danger); }
+.field[data-state="bad"] .mark-ok, .field:not([data-state="bad"]) .mark-bad { display: none; }
+.msg { height: 0; overflow: hidden; }
+.msg-in { display: flex; align-items: center; gap: 6px; margin: 0; padding: 7px 4px 1px; font-size: 12.5px; font-weight: 550; line-height: 16px; color: var(--au-danger-soft); }
+.msg-in svg { flex: none; width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.f-pass input { padding-right: 88px; }
+.eye { position: absolute; right: 6px; top: 4px; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px; background: none; color: var(--au-dim); cursor: pointer; }
+.eye svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.eye-slash { stroke-dasharray: 23; stroke-dashoffset: 23; transition: stroke-dashoffset .35s cubic-bezier(.3, 1.4, .5, 1); }
+.eye[aria-pressed="true"] { color: var(--au-ink); }
+.eye[aria-pressed="false"] .eye-slash { stroke-dashoffset: 0; }
+.eye:focus-visible { outline: 2px solid var(--au-focus); outline-offset: -4px; }
+.meter { display: flex; align-items: center; gap: 10px; height: 22px; padding: 0 2px 8px; }
+.meter::before { content: ''; flex: 1; height: 5px; border-radius: 3px; background: var(--au-input); box-shadow: inset 0 0 0 1px var(--au-input-edge); }
+.meter-fill { position: absolute; left: 2px; top: 0; height: 5px; width: 0; border-radius: 3px; background: var(--au-m1); }
+.meter-label { flex: none; min-width: 108px; text-align: right; font-size: 12px; font-weight: 600; color: var(--au-dim); }
+.err { min-height: 0; margin: 0; font-size: 13px; font-weight: 500; line-height: 18px; color: var(--au-danger-soft); }
+.err:not(:empty) { margin: 0 2px 10px; }
+.alt { margin: 0; padding-top: 12px; text-align: center; font-size: 13.5px; }
+.alt a { color: var(--au-dim); text-decoration: none; padding: 6px 4px; border-radius: 8px; }
+.alt a:hover { color: var(--au-ink); }
+.alt a:focus-visible { outline: 2px solid var(--au-focus); }
+
+/* ---- 8. the button: its label rolls with the tab; while it works it shrinks into a liquid spinner ---- */
+.go { position: relative; display: grid; place-items: center; width: 100%; height: 50px; margin: 0 auto; padding: 0; border: 0; border-radius: 999px; overflow: hidden; cursor: pointer;
+  font-family: var(--au-btn); font-size: 15.5px; font-weight: var(--au-btn-w); color: var(--au-on-cta); background: var(--au-cta); box-shadow: var(--au-cta-depth); }
+.go:focus-visible { outline: 2px solid var(--au-focus); outline-offset: 3px; }
+.go-label { position: relative; display: block; height: 22px; width: 100%; line-height: 22px; }
+.gl { position: absolute; left: 0; right: 0; top: 0; white-space: nowrap; }
+.spin { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; opacity: 0;
+  border: 2.5px solid var(--b-25); border-top-color: var(--au-on-cta); }
+
+/* ---- 9. the code step: six drawn boxes over one real input; a lens marks where the next digit goes ---- */
+.back { position: absolute; right: 12px; top: 12px; z-index: 2; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 12px; background: var(--au-input); box-shadow: inset 0 0 0 1px var(--au-input-edge); color: var(--au-ink); cursor: pointer; }
+.back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.back:focus-visible { outline: 2px solid var(--au-focus); }
+.v-code h2 { padding-right: 48px; }
+.otp { position: relative; height: 58px; margin: 18px 0 10px; }
+.otp input { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; padding: 0; border: 0; outline: none; opacity: 0; font-size: 16px; caret-color: transparent; cursor: text; }
+.boxes { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; height: 100%; }
+.box { position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 14px; background: var(--au-box); box-shadow: inset 0 0 0 1px var(--au-box-edge), var(--au-input-depth); font-style: normal; }
+.box b { font-family: var(--mono); font-size: 24px; font-weight: 600; }
+.otp-lens { z-index: 2; border-radius: 14px; opacity: 0; }
+.otp:has(input:focus-visible) .otp-lens { box-shadow: var(--au-lens-rim), 0 0 0 2px var(--au-focus); }
+.resend { margin: 0; font-size: 13.5px; color: var(--au-dim); }
+.link { padding: 6px 2px; border: 0; background: none; font-weight: 600; color: var(--au-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link:disabled { color: var(--au-dim); text-decoration: none; cursor: default; }
+.link:focus-visible { outline: 2px solid var(--au-focus); border-radius: 6px; }
+.demo { margin: 6px 0 0; font-size: 13px; color: var(--au-dim); }
+.demo b { font-family: var(--mono); font-weight: 600; letter-spacing: .12em; color: var(--au-ink); }
+
+/* ---- 10. the done step, and the tick drawn in the drop when the code is right ---- */
+.v-done { text-align: center; padding-top: 28px; }
+.v-done h2 { font-size: calc(var(--au-head-size) + 4px); }
+.go-again { width: 180px; margin-top: 20px; }
+.check { position: absolute; left: 0; top: 0; width: 52px; height: 52px; margin: -26px 0 0 -26px; z-index: 5; pointer-events: none; opacity: 0;
+  fill: none; stroke: var(--au-ink); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 34; stroke-dashoffset: 34; }
+
+/* ---- 12. ?full=1: the sign-in page on its own, at the real viewport. The frame becomes the page: no title, no
+        credits, no scaling; the page scrolls when the screen is shorter than the card. ---- */
+[data-full] body { overflow: auto; }
+[data-full] .stage { display: block; height: auto; min-height: 100dvh; overflow: visible; }
+[data-full] .frame { display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr); width: 100%; height: auto; min-height: 100dvh; overflow-x: clip; }
+@media (max-width: 379px) { [data-full] .top-links a { display: none; } }
+[data-full] .topbar { position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px clamp(16px, 4vw, 48px); }
+[data-full] .legal { position: relative; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px;
+  padding: 18px clamp(16px, 4vw, 48px) max(20px, env(safe-area-inset-bottom)); }
+@media (min-width: 900px) { [data-full] .sprig { visibility: visible; } }
+[data-full] .sp1 { left: -3%; bottom: 9%; width: min(17vw, 210px); rotate: 16deg; }
+[data-full] .sp2 { right: 1%; top: 14%; width: min(11vw, 150px); rotate: 192deg; }
+[data-full] .sp3 { left: 42%; bottom: -5%; width: min(8vw, 110px); rotate: -14deg; }
+[data-full] .b1 { left: 3%; top: 14%; width: min(8vw, 110px); }
+[data-full] .b2 { right: 4%; top: 64%; width: min(11vw, 160px); }
+[data-full] .b3 { left: 46%; top: 86%; width: min(3.4vw, 48px); }
+[data-full] .pill { right: 30%; top: 9%; width: min(10vw, 140px); }
+@media (max-width: 699px) { [data-full] .pill, [data-full] .b3 { display: none; } }
+[data-full] .title, [data-full] .tutorial, [data-full] .credits { display: none; }
+[data-full] .amb { position: fixed; }
+[data-full] .glow.g1 { left: -12vmax; top: 30%; width: 60vmax; height: 60vmax; }
+[data-full] .glow.g2 { left: auto; right: -14vmax; top: -10%; width: 56vmax; height: 56vmax; }
+[data-full] .glow.g3 { left: 30%; top: 70%; width: 60vmax; height: 40vmax; }
+[data-full] .signin { position: relative; left: auto; top: auto; width: 100%; padding: 8px max(16px, env(safe-area-inset-left)) 24px; }
+
+/* ---- 13. reduced motion: no morphs; things fade (app.js snaps the springs) ---- */
+@media (prefers-reduced-motion: reduce) {
+  .d-sheen { display: none; }
+  .eye-slash, .seg button, .field input { transition: none; }
+}

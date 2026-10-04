@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050506">
+  <title>Liquid auth — UI Components 11</title>
+  <!-- before the first paint: the look (?look=glass|nordic|clay, or a|b|c), so the page never flashes the wrong one.
+       Each look has its own character: the drop (glass), the owl (nordic), the cat (clay).
+       ?full=1 renders the sign-in page on its own at the real viewport size (phone, tablet, desktop layouts).
+       ?view=up, ?view=code or ?view=done opens a later step (stills and links). -->
+  <script>
+    (() => {
+      const html = document.documentElement, q = new URLSearchParams(location.search);
+      const look = { a: 'glass', b: 'nordic', c: 'clay' }[q.get('look')] || q.get('look');
+      html.dataset.look = ['glass', 'nordic', 'clay'].includes(look) ? look : 'glass';
+      if (q.get('full') === '1') html.dataset.full = '';
+      // each look is its own post in the series: its number, its name and its line in the title
+      const [num, name, hint] = {
+        glass: ['11', 'Liquid', 'Sign in. Switch. Verify. One card.'],
+        nordic: ['12', 'Owl', 'It looks away while you type.'],
+        clay: ['13', 'Cat', 'Paws over its eyes for your password.'],
+      }[html.dataset.look];
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('.series b').textContent = num;
+        document.querySelector('.title h1').firstChild.textContent = `${name} `;
+        document.querySelector('.hint').textContent = hint;
+        document.title = `${name} auth — UI Components ${num}`;
+      });
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500..700&family=Geist:wght@400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="stage">
+    <div class="frame">                                      <!-- the 9:16 composition, scaled to fit any screen (app.js) -->
+      <div class="amb" aria-hidden="true">                   <!-- the page's backdrop: each look has its own (decor.for-…) -->
+        <i class="glow g1 drift"></i><i class="glow g2 drift"></i><i class="glow g3 drift"></i>
+        <i class="decor for-glass grid"></i>
+        <svg class="decor for-nordic sprig sp1 drift" viewBox="0 0 120 220"><use href="#sprig"/></svg>
+        <svg class="decor for-nordic sprig sp2 drift" viewBox="0 0 120 220"><use href="#sprig"/></svg>
+        <svg class="decor for-nordic sprig sp3 drift" viewBox="0 0 120 220"><use href="#sprig"/></svg>
+        <i class="decor for-clay ball b1 drift"></i><i class="decor for-clay ball b2 drift"></i><i class="decor for-clay ball b3 drift"></i><i class="decor for-clay pill drift"></i>
+        <i class="grain"></i>
+        <svg class="defs" width="0" height="0"><symbol id="sprig" viewBox="0 0 120 220"><path class="sprig-stem" d="M60 216C57 170 64 110 60 14"/><path class="sprig-leaf sprig-line" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 176) rotate(-150) scale(1.00)"/><path class="sprig-leaf" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 150) rotate(-30) scale(0.91)"/><path class="sprig-leaf" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 124) rotate(-150) scale(0.82)"/><path class="sprig-leaf sprig-line" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 98) rotate(-30) scale(0.73)"/><path class="sprig-leaf" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 74) rotate(-150) scale(0.64)"/><path class="sprig-leaf" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 52) rotate(-30) scale(0.55)"/><path class="sprig-leaf sprig-line" d="M0 0C8 -10 26 -10 34 0C26 8 8 8 0 0Z" transform="translate(60 34) rotate(-150) scale(0.46)"/><circle class="sprig-berry" cx="60" cy="10" r="4"/><circle class="sprig-berry" cx="70" cy="22" r="2.6"/><circle class="sprig-berry" cx="50" cy="24" r="2.6"/></symbol></svg>
+      </div>
+
+      <header class="title">
+        <p class="series"><span>UI Components</span><b>11</b></p>
+        <h1>Liquid <em>auth</em></h1>
+        <p class="hint">Sign in. Switch. Verify. One card.</p>
+      </header>
+
+      <!-- the page's top bar and footer (?full=1 only; the 9:16 frame has its own title and credits) -->
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Calmdeck, home (demo: goes nowhere)"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 22 16 6l12 16z"/><path d="M9 26h14"/></svg><b>Calmdeck</b></a>
+        <nav class="top-links" aria-label="Account help"><a href="#">Help</a><button class="top-cta" type="button">Create account</button></nav>
+      </header>
+
+      <!-- ============================== THE COMPONENT ==============================
+           A sign-in page that follows its container: on a wide screen the brand side and the card side by side, on a
+           phone just the card. One card for the whole flow; its glass (the drop) springs to the size of whatever it
+           holds: the sign-in form, the longer create-account form, the code step, the done step. A blob — a drop of
+           liquid with eyes — peeks over the card and watches. Nothing is sent anywhere: the checks run in the page
+           and the code is a demo code, shown on the card. -->
+      <div class="signin" id="signin">
+        <aside class="brand-side">
+          <p class="eyebrow"><i></i>Analytics for small teams</p>
+          <h2 class="pitch">Every metric, <span>one calm place.</span></h2>
+          <p class="pitch-sub">Sign in to pick up where you left off. New here? Make an account in a minute.</p>
+          <ul class="perks">
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l3.5-4 3 2.5L20 7"/></svg>Live dashboards for the whole team</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></svg>Alerts before things break</li>
+            <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/></svg>Free for small teams</li>
+          </ul>
+          <figure class="glance" aria-hidden="true">          <!-- a glimpse of the product: a demo figure, not real data -->
+            <figcaption>Sign-ups this week</figcaption>
+            <p class="glance-value">2,481 <b>+18%</b></p>
+            <svg viewBox="0 0 220 56" preserveAspectRatio="none"><path class="glance-area" d="M0 44C20 40 30 46 48 38S78 22 96 28S128 40 146 24S180 6 200 12L220 8V56H0Z"/><path class="glance-line" d="M0 44C20 40 30 46 48 38S78 22 96 28S128 40 146 24S180 6 200 12L220 8"/></svg>
+          </figure>
+        </aside>
+
+        <div class="card-side">
+          <!-- behind the character, the look's own stage: ripples round the drop, a painted plate behind the owl, a ball of
+               yarn by the cat. The character (the drop, the owl, the cat) is put around the card by app.js -->
+          <div class="stage-decor" aria-hidden="true">
+            <i class="decor for-glass ripple"></i><i class="decor for-glass ripple"></i><i class="decor for-glass ripple"></i>
+            <svg class="decor for-nordic plate" viewBox="0 0 300 300">
+              <defs><radialGradient id="plate-glaze" cx="40%" cy="34%" r="70%"><stop class="pg1" offset="0"/><stop class="pg2" offset=".7"/><stop class="pg3" offset="1"/></radialGradient></defs>
+              <circle cx="150" cy="150" r="148" fill="url(#plate-glaze)"/><circle class="plate-band" cx="150" cy="150" r="140"/>
+              <path class="plate-scallops" d="M278 150Q267.3 163.2 274.8 178.5M274.8 178.5Q261.4 189 265.3 205.5M265.3 205.5Q249.9 212.8 250.1 229.8M250.1 229.8Q233.4 233.4 229.8 250.1M229.8 250.1Q212.8 249.9 205.5 265.3M205.5 265.3Q189 261.4 178.5 274.8M178.5 274.8Q163.2 267.3 150 278M150 278Q136.8 267.3 121.5 274.8M121.5 274.8Q111 261.4 94.5 265.3M94.5 265.3Q87.2 249.9 70.2 250.1M70.2 250.1Q66.6 233.4 49.9 229.8M49.9 229.8Q50.1 212.8 34.7 205.5M34.7 205.5Q38.6 189 25.2 178.5M25.2 178.5Q32.7 163.2 22 150M22 150Q32.7 136.8 25.2 121.5M25.2 121.5Q38.6 111 34.7 94.5M34.7 94.5Q50.1 87.2 49.9 70.2M49.9 70.2Q66.6 66.6 70.2 49.9M70.2 49.9Q87.2 50.1 94.5 34.7M94.5 34.7Q111 38.6 121.5 25.2M121.5 25.2Q136.8 32.7 150 22M150 22Q163.2 32.7 178.5 25.2M178.5 25.2Q189 38.6 205.5 34.7M205.5 34.7Q212.8 50.1 229.8 49.9M229.8 49.9Q233.4 66.6 250.1 70.2M250.1 70.2Q249.9 87.2 265.3 94.5M265.3 94.5Q261.4 111 274.8 121.5M274.8 121.5Q267.3 136.8 278 150"/><circle class="plate-dots" cx="150" cy="150" r="108"/><circle class="plate-thin" cx="150" cy="150" r="98"/>
+            </svg>
+            <svg class="decor for-clay yarn" viewBox="0 0 100 100">
+              <defs><radialGradient id="yarn-fill" cx="36%" cy="30%" r="75%"><stop class="yf1" offset="0"/><stop class="yf2" offset=".55"/><stop class="yf3" offset="1"/></radialGradient></defs>
+              <path class="yarn-tail" d="M84 70C96 78 98 92 86 96S66 92 58 98"/>
+              <circle cx="50" cy="50" r="34" fill="url(#yarn-fill)"/>
+              <path class="yarn-strands" d="M22 38C40 30 66 34 80 48M18 52C38 44 66 50 82 62M24 68C40 58 62 62 74 74M40 18C30 36 32 62 46 82M58 17C48 36 50 60 62 80"/>
+            </svg>
+          </div>
+          <section class="auth" aria-label="Sign in (demo)">
+            <div class="drop" aria-hidden="true"><i class="d-spot"></i><i class="d-sheen"></i><i class="d-rim"></i><i class="d-ring"></i></div>
+
+            <!-- step 1 · the form: sign in, or create an account (the same fields; the name and the strength meter flow in).
+                 Each field checks itself: a tick when it is right, a mark and a line under it when it is not. -->
+            <form class="view v-form" id="v-form" novalidate>
+              <div class="seg" role="tablist" aria-label="Account">
+                <i class="seg-lens" aria-hidden="true"></i>
+                <button type="button" role="tab" id="tab-in" aria-selected="true" aria-controls="v-form">Sign in</button>
+                <button type="button" role="tab" id="tab-up" aria-selected="false" aria-controls="v-form" tabindex="-1">Create account</button>
+              </div>
+
+              <div class="field f-name" data-only="up">
+                <div class="field-in">
+                  <label for="name">Name</label>
+                  <input id="name" name="name" autocomplete="name" placeholder="Ada Lovelace" spellcheck="false" aria-describedby="name-msg">
+                  <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="mark-bg" cx="12" cy="12" r="11"/><path class="mark-ok" pathLength="1" d="M7.5 12.4l3 3 6-6.6"/><path class="mark-bad" d="M12 6.8v6.4M12 17v.2"/></svg></span>
+                  <div class="msg" id="name-msg" aria-live="polite"><p class="msg-in"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.8v3.6M8 11v.1"/></svg><span class="msg-text"></span></p></div>
+                </div>
+              </div>
+              <div class="field f-email">
+                <div class="field-in">
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" spellcheck="false" required aria-describedby="email-msg">
+                  <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="mark-bg" cx="12" cy="12" r="11"/><path class="mark-ok" pathLength="1" d="M7.5 12.4l3 3 6-6.6"/><path class="mark-bad" d="M12 6.8v6.4M12 17v.2"/></svg></span>
+                  <div class="msg" id="email-msg" aria-live="polite"><p class="msg-in"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.8v3.6M8 11v.1"/></svg><span class="msg-text"></span></p></div>
+                </div>
+              </div>
+              <div class="field f-pass">
+                <div class="field-in">
+                  <label for="pass">Password</label>
+                  <input id="pass" name="password" type="password" autocomplete="current-password" placeholder="At least 8 characters" minlength="8" required aria-describedby="pass-msg">
+                  <button class="eye" type="button" aria-label="Show password" aria-pressed="false" aria-controls="pass">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="eye-lid" d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle class="eye-ball" cx="12" cy="12" r="3"/><path class="eye-slash" d="M4 4l16 16"/></svg>
+                  </button>
+                  <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="mark-bg" cx="12" cy="12" r="11"/><path class="mark-ok" pathLength="1" d="M7.5 12.4l3 3 6-6.6"/><path class="mark-bad" d="M12 6.8v6.4M12 17v.2"/></svg></span>
+                  <div class="msg" id="pass-msg" aria-live="polite"><p class="msg-in"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.8v3.6M8 11v.1"/></svg><span class="msg-text"></span></p></div>
+                </div>
+              </div>
+              <div class="field f-meter" data-only="up" aria-hidden="true">
+                <div class="field-in meter"><i class="meter-fill"></i><span class="meter-label">Use 8+ characters</span></div>
+              </div>
+
+              <button class="go" type="submit"><span class="go-label"><span class="gl gl-a">Sign in</span><span class="gl gl-b"></span></span><i class="spin" aria-hidden="true"></i></button>
+              <div class="field f-forgot" data-only="in">
+                <p class="field-in alt"><a href="#">Forgot password?</a></p>
+              </div>
+            </form>
+
+            <!-- step 2 · the code: one real input (one-time-code) under six drawn boxes -->
+            <div class="view v-code" id="v-code" role="group" aria-labelledby="code-title" hidden>
+              <button class="back" type="button" aria-label="Back to sign in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+              <h2 id="code-title">Check your email</h2>
+              <p class="sub">We sent a 6-digit code to <b class="to">you@example.com</b></p>
+              <div class="otp">
+                <input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" aria-label="6-digit code" aria-describedby="code-err code-demo" spellcheck="false">
+                <i class="otp-lens" aria-hidden="true"></i>
+                <div class="boxes" aria-hidden="true"><i class="box"><b></b></i><i class="box"><b></b></i><i class="box"><b></b></i><i class="box"><b></b></i><i class="box"><b></b></i><i class="box"><b></b></i></div>
+              </div>
+              <p class="err" id="code-err" role="alert"></p>
+              <p class="resend"><button class="link" type="button" disabled>Resend code</button><span class="timer" aria-hidden="true"> in 0:30</span></p>
+              <p class="demo" id="code-demo">Demo code: <b>246810</b></p>
+            </div>
+
+            <!-- step 3 · done -->
+            <div class="view v-done" id="v-done" role="status" hidden>
+              <h2>You’re in</h2>
+              <p class="sub">Signed in as <b class="to">you@example.com</b></p>
+              <button class="go go-again" type="button"><span class="go-label">Start over</span></button>
+            </div>
+
+            <svg class="check" viewBox="0 0 52 52" aria-hidden="true"><path d="M15 27l7 7 15-16"/></svg>
+          </section>
+
+          <p class="note" aria-hidden="true">Demo only: nothing is sent anywhere.</p>
+        </div>
+      </div>
+
+      <footer class="legal">
+        <p>© 2026 Calmdeck</p>
+        <nav aria-label="Legal"><a href="#">Privacy</a><a href="#">Terms</a><a class="status" href="#"><i></i>All systems normal</a></nav>
+      </footer>
+    </div>
+  </main>
+  <div class="touch" aria-hidden="true"></div>
+
+  <script src="spring.js"></script>
+  <script src="characters.js"></script>
+  <script src="character-drop.js"></script>
+  <script src="character-owl.js"></script>
+  <script src="character-cat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
